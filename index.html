@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Application</h1>
+        <form id="weatherForm">
+            <input type="text" id="city" placeholder="Enter city" required>
+            <button type="submit">Get Weather</button>
+        </form>
+        <div id="weatherResult">
+            <!-- Weather results will be displayed here -->
+        </div>
+        <div id="forecastResult">
+            <!-- 5-Day Forecast will be displayed here -->
+        </div>
+        <canvas id="temperatureChart" width="400" height="200"></canvas>
+    </div>
+    <script>
+        document.getElementById('weatherForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const city = document.getElementById('city').value;
+
+            fetch(`/weather?city=${city}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('weatherResult').innerHTML = `<p>${data.error}</p>`;
+                    } else {
+                        document.getElementById('weatherResult').innerHTML = `
+                            <h2>${data.city}</h2>
+                            <p>Temperature: ${data.temperature}°C</p>
+                            <p>Description: ${data.description}</p>
+                            <p>Pressure: ${data.pressure} hPa</p>
+                            <p>Humidity: ${data.humidity}%</p>
+                            <p>Wind Speed: ${data.wind_speed} m/s</p>
+                            <img src="${data.image}" alt="Weather image" style="width:100px;height:100px;">
+                        `;
+                        updateChart(data.temperatureHistory);
+                        fetchForecast(city);
+                    }
+                });
+        });
+
+        function updateChart(temperatureHistory) {
+            const dates = temperatureHistory.map(entry => entry.date);
+            const temperatures = temperatureHistory.map(entry => entry.temperature);
+
+            temperatureChart.data.labels = dates;
+            temperatureChart.data.datasets[0].data = temperatures;
+            temperatureChart.update();
+        }
+
+        function fetchForecast(city) {
+            fetch(`/forecast?city=${city}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('forecastResult').innerHTML = `<p>${data.error}</p>`;
+                    } else {
+                        const forecastHtml = data.forecast.map(entry => `
+                            <div>
+                                <h3>${entry.date}</h3>
+                                <p>Temperature: ${entry.temperature}°C</p>
+                                <p>Description: ${entry.description}</p>
+                                <img src="http://openweathermap.org/img/wn/${entry.icon}.png" alt="Weather icon">
+                            </div>
+                        `).join('');
+                        document.getElementById('forecastResult').innerHTML = forecastHtml;
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
+
